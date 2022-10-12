@@ -31,7 +31,15 @@
  ryyr
  ryyr
  rrrr
+`,`
+rr  rr
+rrrrrr
+rrpprr
+rrrrrr
+  rr
+  rr
 `,
+
 
 
 
@@ -72,7 +80,7 @@
 
 		options = {
 			viewSize: { x: GameCanvas.WIDTH, y: GameCanvas.HEIGHT },
-			theme: "pixel",
+			theme: "crt",
 			// seed: 10,
 			// isPlayingBgm: true,
 		};
@@ -106,6 +114,28 @@
 		let energy;
 		let energy_use;
 		let energy_recover;
+
+		//declare enemies
+		/**
+ 		* @typedef {{
+ 		* pos: Vector
+ 		* }} Enemy
+ 		*/
+
+		/**
+ 		* @type { Enemy [] }
+ 		*/
+		let enemies;
+
+		/**
+ 		* @type { number }
+ 		*/
+		let currentEnemySpeed;
+
+		/**
+ 		* @type { number }
+ 		*/
+		let waveCount;
 
 
 		
@@ -153,6 +183,15 @@
 					cap: energy_cap,
 				};
 
+				//enemy init
+				enemies = []; 
+
+				
+				waveCount = 0;
+				currentEnemySpeed = 0;
+		
+
+
 				//init of my botton control
 				firstClick = false;
 				secondClick = false;
@@ -161,7 +200,28 @@
 			}// init end
 
 
+			//spawning enemies
+			if (enemies.length === 0) {
+				currentEnemySpeed =
+					rnd(var_enemy.ENEMY_MIN_BASE_SPEED, var_enemy.ENEMY_MAX_BASE_SPEED) * difficulty; 
+				for (let i = 0; i < 9; i++) {
+					const posX = rnd(0, GameCanvas.WIDTH);
+					const posY = -rnd(i * GameCanvas.HEIGHT * 0.1);
+					enemies.push({ pos: vec(posX, posY) })
+				}
+			}		
 
+				//Another update loop
+				// with remove()
+				remove(enemies, (e) => {
+        			e.pos.y += currentEnemySpeed;
+        			color("black");
+        			char("b", e.pos);
+
+        			return (e.pos.y > GameCanvas.HEIGHT);
+    		});				
+
+			
 			//draw player body layer 0
 			color("black");
 			char("a", player.pos);
@@ -176,7 +236,6 @@
 			//draw player head layer 2
 			color("yellow");
 			box(player.pos.x + 1, player.pos.y, 2);
-
 
 
 			if (input.isJustPressed) {
@@ -250,6 +309,8 @@
 			text("energy", 15, 140);
 			bar(energy.pos, energy.current_energy, 8, -PI / 2, 0);
 		}
+
+		
 
 
 		window.addEventListener("load", onLoad);
