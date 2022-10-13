@@ -35,12 +35,11 @@
  ryyr
  rrrr
 `,`
-rr  rr
 rrrrrr
+r rr r
 rrpprr
 rrrrrr
-  rr
-  rr
+rr  rr 
 `,
 
 
@@ -52,7 +51,7 @@ rrrrrr
 
 
 		const GameCanvas = {
-			WIDTH: 200,
+			WIDTH: 150,
 			HEIGHT: 250
 		};
 
@@ -84,8 +83,9 @@ rrrrrr
 		options = {
 			viewSize: { x: GameCanvas.WIDTH, y: GameCanvas.HEIGHT },
 			theme: "crt",
-			// seed: 10,
-			// isPlayingBgm: true,
+			seed: 10,
+			isPlayingBgm: true,
+			isReplayEnabled: true,
 		};
 
 
@@ -118,30 +118,23 @@ rrrrrr
 		let energy_use;
 		let energy_recover;
 
+
 		//declare enemies
 		/**
- 		* @typedef {{
- 		* pos: Vector
- 		* }} Enemy
- 		*/
-
-		/**
- 		* @type { Enemy [] }
- 		*/
+		 * @typedef { object } enemies
+		 * @typedef { vector } pos
+		 */
 		let enemies;
-
-		/**
- 		* @type { number }
- 		*/
 		let currentEnemySpeed;
 
 		/**
- 		* @type { number }
- 		*/
+			* @type { number }
+			*/
 		let waveCount;
 
 
-		
+		//score
+		let game_score;
 
 
 
@@ -151,6 +144,7 @@ rrrrrr
 		let secondClick;
 		let twoClicksDuration;
 		let holdDuration;
+
 
 
 
@@ -165,8 +159,8 @@ rrrrrr
 				player_position_x = GameCanvas.WIDTH * 0.5
 				player_position_y = GameCanvas.HEIGHT * 0.5
 				//beans
-				beans_lastTime = 120;	//mean 2 second
-				bean_length = 40;
+				bean_length = 50;
+
 				//energy
 				energy_use = 1;
 				energy_recover = 1;
@@ -180,19 +174,19 @@ rrrrrr
 					pos: vec(player_position_x, player_position_y),
 					gun_angle: 0,
 				};
+
+				//energy init
 				energy = {
-					pos: vec(5, 145),
+					pos: vec(100, 150),
 					current_energy: energy_cap,
 					cap: energy_cap,
 				};
 
 				//enemy init
-				enemies = []; 
-
-				
+				enemies = [];
 				waveCount = 0;
 				currentEnemySpeed = 0;
-		
+
 
 
 				//init of my botton control
@@ -200,31 +194,28 @@ rrrrrr
 				secondClick = false;
 				twoClicksDuration = 0;
 				holdDuration = 0;
+
+				//init score each enemy
+				game_score = 10;
+
+
+
 			}// init end
 
 
 			//spawning enemies
 			if (enemies.length === 0) {
 				currentEnemySpeed =
-					rnd(var_enemy.ENEMY_MIN_BASE_SPEED, var_enemy.ENEMY_MAX_BASE_SPEED) * difficulty; 
+					rnd(var_enemy.ENEMY_MIN_BASE_SPEED, var_enemy.ENEMY_MAX_BASE_SPEED) * difficulty;
 				for (let i = 0; i < 9; i++) {
 					const posX = rnd(0, GameCanvas.WIDTH);
 					const posY = -rnd(i * GameCanvas.HEIGHT * 0.1);
 					enemies.push({ pos: vec(posX, posY) })
 				}
-			}		
+			}
 
-				//Another update loop
-				// with remove()
-				remove(enemies, (e) => {
-        			e.pos.y += currentEnemySpeed;
-        			color("black");
-        			char("b", e.pos);
 
-        			return (e.pos.y > GameCanvas.HEIGHT);
-    		});				
 
-			
 			//draw player body layer 0
 			color("black");
 			char("a", player.pos);
@@ -263,15 +254,17 @@ rrrrrr
 					if (energy.current_energy > 0) {
 						energy.current_energy -= energy_use;
 
-					//create a bean
-					beans = {
-						pos: vec(player.pos),
-						angle: player.gun_angle,
-					};
-					color("cyan");
-					bar(player.pos.x + 1, player.pos.y + 1, bean_length, 3, beans.angle, 0);
-					} else if (energy.current_energy <= 0) {
+						//create a bean
+						beans = {
+							pos: vec(player.pos),
+							angle: player.gun_angle,
+						};
 						
+						color("green");
+						bar(player.pos.x + 1, player.pos.y + 1, bean_length, 3, beans.angle, 0);
+
+					} else if (energy.current_energy <= 0) {
+
 					}
 
 					//=====================================
@@ -302,18 +295,54 @@ rrrrrr
 
 
 				//not pressed energy recover
-				if(energy.current_energy <= energy.cap){
+				if (energy.current_energy <= energy.cap) {
 					energy.current_energy += energy_recover;
 				}
 			}
 
+
+						//Another update loop
+			// with remove()
+			remove(enemies, (e) => {
+				e.pos.y += currentEnemySpeed;
+				color("black");
+				const isCollidingWithBean = char("b", e.pos).isColliding.rect.green;
+		
+					if (isCollidingWithBean) {
+					play("explosion");
+					color("red");
+					particle(e.pos,
+						100, // The number of particles
+						1, // The speed of the particles
+						-PI / 2, // The emitting angle
+						PI  // The emitting width
+					);
+					game_score = 10;
+					addScore(game_score, e.pos);
+				}
+
+				return (isCollidingWithBean || e.pos.y > GameCanvas.HEIGHT);
+			});
+
+
+		// 	color("red");
+        // const isCollidingWithPlayer
+        //     = char("c", eb.pos, {rotation: eb.rotation}).isColliding.char.a;
+
+        // if (isCollidingWithPlayer) {
+        //     // End the game
+        //     end();
+        //     // Sarcasm; also, unintedned audio that sounds good in actual gameplay
+        //     play("powerUp"); 
+
 			//display energy
-			color("green");
-			text("energy", 15, 140);
-			bar(energy.pos, energy.current_energy, 8, -PI / 2, 0);
+			color("cyan");
+			text("energy", 35, 140);
+		//	bar(energy.pos, energy.current_energy, 8, -PI / 2, 0);
+		bar(energy.pos,  energy.current_energy, 8, PI, 0);
 		}
 
-		
+
 
 
 		window.addEventListener("load", onLoad);
